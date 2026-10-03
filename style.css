@@ -3,7 +3,7 @@ Theme Name: Daily Pulse
 Theme URI: https://github.com/miyuru2y-ops/daily-pulse-theme
 Author: Daily Pulse
 Description: A lean, fast BBC-style editorial news theme. No page builders, no jQuery, no bloat — just clean templates for the homepage, sections and articles. Designed to be deployed straight from GitHub via webhook.
-Version: 1.0.6
+Version: 1.0.7
 License: GNU General Public License v2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 Text Domain: daily-pulse
@@ -174,3 +174,39 @@ footer{background:#1a1a1a;color:#b5b5b5;margin-top:10px}
   .secnav-in{justify-content:flex-start;overflow-x:auto;flex-wrap:nowrap}
 }
 /* v1.0.6 resync */
+
+/* ---------- v1.0.7: progress bar, dark mode, news ticker ---------- */
+.dp-progress{position:fixed;top:0;left:0;height:3px;width:0;background:var(--red);z-index:10000}
+.theme-toggle{background:none;border:1px solid var(--rule);border-radius:50%;width:34px;height:34px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;color:var(--ink);flex:none;padding:0}
+.theme-toggle:hover{background:var(--soft)}
+.theme-toggle .icon-sun{display:none}
+[data-theme="dark"] .theme-toggle .icon-sun{display:block}
+[data-theme="dark"] .theme-toggle .icon-moon{display:none}
+.ticker{display:flex;align-items:center;background:#141414;color:#fff;font-size:13px;overflow:hidden;border-bottom:1px solid #000}
+.ticker-label{background:var(--red);color:#fff;font-weight:800;font-size:11px;letter-spacing:.1em;text-transform:uppercase;padding:4px 10px;margin:6px 0 6px 12px;flex:none;border-radius:2px}
+.ticker-view{overflow:hidden;flex:1;padding:8px 0}
+.ticker-track{display:inline-flex;align-items:center;gap:26px;white-space:nowrap;animation:dp-ticker 45s linear infinite;will-change:transform;padding-right:26px}
+.ticker:hover .ticker-track{animation-play-state:paused}
+.ticker-track a{color:#fff}
+.ticker-track a:hover{text-decoration:underline}
+.ticker-dot{color:var(--red)}
+@keyframes dp-ticker{to{transform:translateX(-50%)}}
+@media (prefers-reduced-motion:reduce){.ticker-track{animation:none}}
+/* dark mode */
+[data-theme="dark"]{--ink:#e9e9e9;--muted:#a8a8a8;--faint:#8f8f8f;--rule:#2d2d2d;--bg:#141414;--soft:#1e1e1e}
+[data-theme="dark"] body{background:var(--bg);color:var(--ink)}
+[data-theme="dark"] .masthead,[data-theme="dark"] .secnav{background:#141414}
+[data-theme="dark"] .story-body p{color:#d9d9d9}
+[data-theme="dark"] .dek{color:#bdbdbd}
+[data-theme="dark"] .card p{color:#c9c9c9}
+[data-theme="dark"] .lead-text .summary{color:#c9c9c9}
+[data-theme="dark"] .kicker{color:#ff7b7b}
+[data-theme="dark"] .sec-title .bar{background:#ff7b7b}
+[data-theme="dark"] .top-stories .n{color:#ff7b7b}
+[data-theme="dark"] .brand-blocks span{background:#e9e9e9;color:#141414}
+[data-theme="dark"] .tool-btn{background:#1e1e1e;border-color:#2d2d2d;color:#e9e9e9}
+[data-theme="dark"] .tool-btn:hover{background:#2b2b2b}
+[data-theme="dark"] .tool-btn.on{background:#e9e9e9;color:#141414;border-color:#e9e9e9}
+[data-theme="dark"] .by-avatar span{background:#e9e9e9;color:#141414}
+[data-theme="dark"] .nav-links a,[data-theme="dark"] .nav-links .current{border-color:#2d2d2d}
+[data-theme="dark"] .rel-more a{color:#e9e9e9}
