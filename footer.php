@@ -25,7 +25,7 @@
   if ($trust_links) : ?>
   <div class="foot-trust"><?php echo $trust_links; ?></div>
   <?php endif; ?>
-  <div class="foot-base">&copy; <?php echo esc_html(wp_date('Y')); ?> <?php esc_html_e('Daily Pulse. News, rewritten clearly.', 'daily-pulse'); ?></div>
+  <div class="foot-base">&copy; <?php echo esc_html(wp_date('Y')); ?> <?php esc_html_e('Daily Pulse. News every hour.', 'daily-pulse'); ?></div>
 </footer>
 <?php wp_footer(); ?>
 </body>
