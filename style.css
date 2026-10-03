@@ -126,6 +126,7 @@ footer{background:#1a1a1a;color:#b5b5b5;margin-top:10px}
 .foot-trust{display:flex;flex-wrap:wrap;gap:6px 20px;max-width:1240px;margin:0 auto;padding:0 24px 18px}
 .foot-trust a{font-size:13px;color:#b5b5b5}
 .foot-trust a:hover{color:#fff}
+/* v1.0.5 sync */
 
 /* ---------- WordPress specifics ---------- */
 .screen-reader-text{border:0;clip:rect(1px,1px,1px,1px);clip-path:inset(50%);height:1px;margin:-1px;overflow:hidden;padding:0;position:absolute;width:1px;word-wrap:normal}
