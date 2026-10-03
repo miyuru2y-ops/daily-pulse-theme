@@ -13,7 +13,7 @@
 
 if (!defined('ABSPATH')) exit;
 
-define('DP_VERSION', '1.0.6');
+define('DP_VERSION', '1.0.7');
 define('DP_SECTIONS', array('world', 'technology', 'business', 'entertainment', 'sports', 'health', 'science'));
 
 /* ---------- theme setup ---------- */
@@ -321,13 +321,18 @@ function dp_json_ld() {
         $id  = get_queried_object_id();
         $cat = dp_primary_cat($id);
         $img = dp_image_url($id);
+        $about_page = get_page_by_path('about');
         $article = array(
             '@context'      => 'https://schema.org',
             '@type'         => 'NewsArticle',
             'headline'      => get_the_title($id),
             'datePublished' => get_the_date('c', $id),
             'dateModified'  => get_the_modified_date('c', $id),
-            'author'        => array('@type' => 'Organization', 'name' => 'Daily Pulse'),
+            'author'        => array(
+                '@type' => 'Person',
+                'name'  => 'Daily Pulse',
+                'url'   => $about_page ? get_permalink($about_page) : $home,
+            ),
             'publisher'     => array('@type' => 'Organization', 'name' => 'Daily Pulse'),
         );
         if ($img) $article['image'] = $img;
@@ -394,4 +399,56 @@ function dp_most_read($n = 5) {
         ));
     }
     return $q;
+}
+
+/** Google News sitemap: articles published in the last 2 days.
+ *  Served at /news-sitemap.xml without needing a rewrite-rule flush. */
+add_action('parse_request', 'dp_news_sitemap_serve');
+function dp_news_sitemap_serve() {
+    if (!isset($_SERVER['REQUEST_URI'])) return;
+    $path = strtok($_SERVER['REQUEST_URI'], '?');
+    if (substr($path, -strlen('/news-sitemap.xml')) !== '/news-sitemap.xml') return;
+
+    $q = new WP_Query(array(
+        'post_type'           => 'post',
+        'post_status'         => 'publish',
+        'posts_per_page'      => 500,
+        'ignore_sticky_posts' => true,
+        'no_found_rows'       => true,
+        'orderby'             => 'date',
+        'order'               => 'DESC',
+        'date_query'          => array(array('after' => '2 days ago', 'inclusive' => true)),
+    ));
+
+    header('Content-Type: application/xml; charset=' . get_bloginfo('charset'));
+    echo '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
+    echo '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"'
+        . ' xmlns:news="http://www.google.com/schemas/sitemap-news/0.9">' . "\n";
+    while ($q->have_posts()) {
+        $q->the_post();
+        $id = get_the_ID();
+        echo "  <url>\n";
+        echo '    <loc>' . esc_url(get_permalink($id)) . "</loc>\n";
+        echo "    <news:news>\n";
+        echo "      <news:publication>\n";
+        echo '        <news:name>Daily Pulse</news:name>' . "\n";
+        echo '        <news:language>en</news:language>' . "\n";
+        echo "      </news:publication>\n";
+        echo '      <news:publication_date>' . esc_html(get_the_date('c', $id)) . "</news:publication_date>\n";
+        echo '      <news:title>' . esc_html(get_the_title($id)) . "</news:title>\n";
+        echo "    </news:news>\n";
+        echo "  </url>\n";
+    }
+    wp_reset_postdata();
+    echo '</urlset>';
+    exit;
+}
+
+/** Advertise the news sitemap in robots.txt. */
+add_filter('robots_txt', 'dp_robots_txt_news_sitemap', 10, 2);
+function dp_robots_txt_news_sitemap($output, $public) {
+    if ($public) {
+        $output .= 'Sitemap: ' . esc_url(home_url('/news-sitemap.xml')) . "\n";
+    }
+    return $output;
 }
