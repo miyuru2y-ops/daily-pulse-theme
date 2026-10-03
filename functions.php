@@ -13,7 +13,7 @@
 
 if (!defined('ABSPATH')) exit;
 
-define('DP_VERSION', '1.0.0');
+define('DP_VERSION', '1.0.1');
 define('DP_SECTIONS', array('world', 'technology', 'business', 'entertainment', 'sports', 'health', 'science'));
 
 /* ---------- theme setup ---------- */
