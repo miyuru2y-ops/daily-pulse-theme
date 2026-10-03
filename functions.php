@@ -13,7 +13,7 @@
 
 if (!defined('ABSPATH')) exit;
 
-define('DP_VERSION', '1.0.5');
+define('DP_VERSION', '1.0.6');
 define('DP_SECTIONS', array('world', 'technology', 'business', 'entertainment', 'sports', 'health', 'science'));
 
 /* ---------- theme setup ---------- */
@@ -28,8 +28,11 @@ function dp_setup() {
 
 add_action('wp_enqueue_scripts', 'dp_assets');
 function dp_assets() {
-    // The whole design is one stylesheet. No JavaScript shipped at all.
     wp_enqueue_style('daily-pulse', get_stylesheet_uri(), array(), DP_VERSION);
+    // Article tools (Listen / Copy link / Save) — only on single posts.
+    if (is_singular('post')) {
+        wp_enqueue_script('daily-pulse-tools', get_template_directory_uri() . '/dp.js', array(), DP_VERSION, true);
+    }
 }
 
 /* Hide the WordPress version from page source (SEO audit fix). */
