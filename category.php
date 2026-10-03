@@ -14,7 +14,7 @@ get_header();
       <span class="kicker"><?php single_cat_title(); ?></span>
       <a href="<?php the_permalink(); ?>"><h2><?php the_title(); ?></h2></a>
       <p><?php echo esc_html(get_the_excerpt()); ?></p>
-      <div class="meta"><?php echo esc_html(dp_time_ago()); ?></div>
+      <div class="meta"><?php echo dp_pub_date(); ?></div>
     </div>
     <a href="<?php the_permalink(); ?>"><?php echo dp_card_img(null, ''); ?></a>
   </div>
