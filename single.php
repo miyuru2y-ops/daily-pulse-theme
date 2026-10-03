@@ -11,7 +11,7 @@ while (have_posts()) : the_post();
 <div class="wrap"><article class="story">
   <?php if ($cat) : ?><span class="kicker"><?php echo esc_html($cat->name); ?></span><?php endif; ?>
   <h1><?php the_title(); ?></h1>
-  <div class="meta"><?php echo esc_html(dp_time_ago()); ?> <span style="color:#ccc">&nbsp;|&nbsp;</span> <?php echo $cat ? esc_html($cat->name) : ''; ?> &nbsp;|&nbsp; <?php echo esc_html(dp_reading_time()); ?></div>
+  <div class="meta"><?php echo dp_pub_date(); ?> <span style="color:#ccc">&nbsp;|&nbsp;</span> <?php echo $cat ? esc_html($cat->name) : ''; ?> &nbsp;|&nbsp; <?php echo esc_html(dp_reading_time()); ?></div>
   <?php if ($img) : ?>
     <img class="story-img" src="<?php echo $img; ?>" alt="<?php the_title_attribute(); ?>" onerror="this.style.display='none'">
     <?php if ($sname) : ?><p class="img-cap"><?php printf(esc_html__('Image: %s', 'daily-pulse'), esc_html($sname)); ?></p><?php endif; ?>
