@@ -13,7 +13,7 @@
 
 if (!defined('ABSPATH')) exit;
 
-define('DP_VERSION', '1.0.3');
+define('DP_VERSION', '1.0.4');
 define('DP_SECTIONS', array('world', 'technology', 'business', 'entertainment', 'sports', 'health', 'science'));
 
 /* ---------- theme setup ---------- */
@@ -75,12 +75,13 @@ function dp_time_ago($post_id = null) {
 /** Image URL for a post: dp_image meta -> featured image -> none. */
 function dp_image_url($post_id = null) {
     $post_id = $post_id ? $post_id : get_the_ID();
-    $url = get_post_meta($post_id, 'dp_image', true);
-    if ($url) return esc_url($url);
+    // Featured image (local media library) wins; dp_image hotlink is the fallback.
     if (has_post_thumbnail($post_id)) {
         $src = wp_get_attachment_image_src(get_post_thumbnail_id($post_id), 'large');
         if (!empty($src[0])) return esc_url($src[0]);
     }
+    $url = get_post_meta($post_id, 'dp_image', true);
+    if ($url) return esc_url($url);
     return '';
 }
 
