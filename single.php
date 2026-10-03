@@ -11,6 +11,7 @@ while (have_posts()) : the_post();
     $plink   = get_permalink();
     $ptitle  = get_the_title();
 ?>
+<div class="dp-progress" id="dp-progress" aria-hidden="true"></div>
 <div class="wrap"><article class="story">
   <?php if ($cat) : ?><span class="kicker"><?php echo esc_html($cat->name); ?></span><?php endif; ?>
   <h1><?php the_title(); ?></h1>
