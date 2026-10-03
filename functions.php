@@ -13,7 +13,7 @@
 
 if (!defined('ABSPATH')) exit;
 
-define('DP_VERSION', '1.0.2');
+define('DP_VERSION', '1.0.3');
 define('DP_SECTIONS', array('world', 'technology', 'business', 'entertainment', 'sports', 'health', 'science'));
 
 /* ---------- theme setup ---------- */
@@ -137,8 +137,7 @@ function dp_card($post_id = null) {
 
 /* ---------- most-read view counter ---------- */
 
-/** Preload the homepage lead image so the LCP request starts ASAP. */
-add_action('wp_head', 'dp_preload_lcp', 1);
+/** Preload the homepage lead image so the LCP request starts ASAP. */add_action('wp_head', 'dp_preload_lcp', 1);
 function dp_preload_lcp() {
     if (!is_front_page()) return;
     $q = new WP_Query(array(
@@ -155,6 +154,38 @@ function dp_preload_lcp() {
             echo '<link rel="preload" as="image" href="' . esc_url($url) . '" fetchpriority="high">' . "\n";
         }
     }
+}
+
+/** Meta description (+ basic Open Graph) for SEO. Skipped when an SEO
+ *  plugin is active to avoid duplicate tags. */
+add_action('wp_head', 'dp_meta_tags', 1);
+function dp_meta_tags() {
+    if (defined('WPSEO_VERSION') || defined('RANK_MATH_VERSION')) return;
+    $desc = '';
+    if (is_singular()) {
+        $desc = get_the_excerpt(get_queried_object_id());
+        if (!$desc) {
+            $desc = wp_trim_words(wp_strip_all_tags(get_post_field('post_content', get_queried_object_id())), 30);
+        }
+    } elseif (is_category()) {
+        $cat  = get_queried_object();
+        $desc = ($cat && !empty($cat->description))
+            ? $cat->description
+            : sprintf(__('The latest %s news, rewritten clearly and updated daily.', 'daily-pulse'), single_cat_title('', false));
+    } elseif (is_front_page()) {
+        $desc = __('World news, rewritten in clear language and updated daily. Top stories across World, Technology, Business, Entertainment, Sports, Health and Science.', 'daily-pulse');
+    }
+    $desc = trim(wp_strip_all_tags($desc));
+    if (!$desc) return;
+    if (mb_strlen($desc) > 160) {
+        $desc = mb_substr($desc, 0, 157) . '...';
+    }
+    echo '<meta name="description" content="' . esc_attr($desc) . '">' . "\n";
+    echo '<meta property="og:description" content="' . esc_attr($desc) . '">' . "\n";
+    echo '<meta property="og:type" content="' . (is_singular() ? 'article' : 'website') . '">' . "\n";
+    $canon = (is_singular() || is_category()) ? get_permalink(get_queried_object_id()) : home_url('/');
+    echo '<meta property="og:url" content="' . esc_url($canon) . '">' . "\n";
+    echo '<meta name="twitter:card" content="summary_large_image">' . "\n";
 }
 
 add_action('template_redirect', 'dp_track_view');
