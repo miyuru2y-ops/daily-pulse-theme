@@ -18,7 +18,7 @@ $strip = new WP_Query(array('posts_per_page' => 3, 'offset' => 5, 'ignore_sticky
     <p class="summary"><?php echo esc_html(get_the_excerpt()); ?></p>
     <div class="meta"><?php echo esc_html(dp_time_ago()); ?> <span style="color:#ccc">&nbsp;|&nbsp;</span> <?php echo $cat ? esc_html($cat->name) : ''; ?></div>
   </div>
-  <a class="lead-img" href="<?php the_permalink(); ?>"><?php echo dp_card_img(null, ''); ?></a>
+  <a class="lead-img" href="<?php the_permalink(); ?>"><?php echo dp_card_img(null, '', 'fetchpriority="high"'); ?></a>
   <?php if ($top->have_posts()) : ?>
   <div class="top-stories">
     <h2><?php esc_html_e('Top stories', 'daily-pulse'); ?></h2>
