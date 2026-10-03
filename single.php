@@ -5,8 +5,7 @@ get_header();
 while (have_posts()) : the_post();
     $cat     = dp_primary_cat();
     $img     = dp_image_url();
-    $sname   = get_post_meta(get_the_ID(), 'dp_source_name', true);
-    $surl    = get_post_meta(get_the_ID(), 'dp_source_url', true);
+    $imgcap   = get_post_meta(get_the_ID(), 'dp_img_credit', true);
 ?>
 <div class="wrap"><article class="story">
   <?php if ($cat) : ?><span class="kicker"><?php echo esc_html($cat->name); ?></span><?php endif; ?>
@@ -14,14 +13,9 @@ while (have_posts()) : the_post();
   <div class="meta"><?php printf(esc_html__('By %s', 'daily-pulse'), esc_html(get_the_author())); ?> <span style="color:#ccc">&nbsp;|&nbsp;</span> <?php echo dp_pub_date(); ?> <span style="color:#ccc">&nbsp;|&nbsp;</span> <?php echo $cat ? esc_html($cat->name) : ''; ?> &nbsp;|&nbsp; <?php echo esc_html(dp_reading_time()); ?></div>
   <?php if ($img) : ?>
     <img class="story-img" src="<?php echo $img; ?>" alt="<?php the_title_attribute(); ?>" onerror="this.style.display='none'">
-    <?php if ($sname) : ?><p class="img-cap"><?php printf(esc_html__('Image: %s', 'daily-pulse'), esc_html($sname)); ?></p><?php endif; ?>
+    <?php if ($imgcap) : ?><p class="img-cap"><?php echo esc_html($imgcap); ?></p><?php endif; ?>
   <?php endif; ?>
   <div class="story-body"><?php the_content(); ?></div>
-  <?php if ($sname || $surl) : ?>
-  <div class="source-box"><?php printf(esc_html__('Originally reported by %s.', 'daily-pulse'), '<strong>' . esc_html($sname) . '</strong>'); ?><br>
-    <?php if ($surl) : ?><a href="<?php echo esc_url($surl); ?>" target="_blank" rel="noopener"><?php esc_html_e('Read the original article', 'daily-pulse'); ?></a><?php endif; ?>
-  </div>
-  <?php endif; ?>
 </article></div>
 
 <?php if ($cat) :
