@@ -13,7 +13,7 @@
 
 if (!defined('ABSPATH')) exit;
 
-define('DP_VERSION', '1.0.1');
+define('DP_VERSION', '1.0.2');
 define('DP_SECTIONS', array('world', 'technology', 'business', 'entertainment', 'sports', 'health', 'science'));
 
 /* ---------- theme setup ---------- */
@@ -85,12 +85,13 @@ function dp_image_url($post_id = null) {
 }
 
 /** <img> tag for cards / heroes. Empty string when there is no image. */
-function dp_card_img($post_id = null, $class = 'card-img') {
+function dp_card_img($post_id = null, $class = 'card-img', $extra = '') {
     $post_id = $post_id ? $post_id : get_the_ID();
     $url = dp_image_url($post_id);
     if (!$url) return '';
+    $extra = $extra ? ' ' . trim($extra) : '';
     return '<img class="' . esc_attr($class) . '" src="' . $url . '" alt="' .
-        esc_attr(get_the_title($post_id)) . '" loading="lazy" onerror="this.style.display=\'none\'">';
+        esc_attr(get_the_title($post_id)) . '" loading="lazy" decoding="async"' . $extra . ' onerror="this.style.display=\'none\'">';
 }
 
 function dp_reading_time($post_id = null) {
@@ -135,6 +136,26 @@ function dp_card($post_id = null) {
 }
 
 /* ---------- most-read view counter ---------- */
+
+/** Preload the homepage lead image so the LCP request starts ASAP. */
+add_action('wp_head', 'dp_preload_lcp', 1);
+function dp_preload_lcp() {
+    if (!is_front_page()) return;
+    $q = new WP_Query(array(
+        'posts_per_page'      => 1,
+        'post_status'         => 'publish',
+        'ignore_sticky_posts' => true,
+        'no_found_rows'       => true,
+    ));
+    if ($q->have_posts()) {
+        $q->the_post();
+        $url = dp_image_url();
+        wp_reset_postdata();
+        if ($url) {
+            echo '<link rel="preload" as="image" href="' . esc_url($url) . '" fetchpriority="high">' . "\n";
+        }
+    }
+}
 
 add_action('template_redirect', 'dp_track_view');
 function dp_track_view() {
