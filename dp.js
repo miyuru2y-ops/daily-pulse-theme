@@ -96,3 +96,53 @@
     }
   });
 })();
+
+/* ---- Dark mode toggle (persisted in localStorage) ---- */
+(function () {
+  function onReady(fn) {
+    if (document.readyState !== 'loading') fn();
+    else document.addEventListener('DOMContentLoaded', fn);
+  }
+  onReady(function () {
+    var tgl = document.getElementById('dp-theme-toggle');
+    if (!tgl) return;
+    tgl.addEventListener('click', function () {
+      var dark = document.documentElement.getAttribute('data-theme') === 'dark';
+      try {
+        if (dark) {
+          document.documentElement.removeAttribute('data-theme');
+          localStorage.setItem('dp_theme', 'light');
+        } else {
+          document.documentElement.setAttribute('data-theme', 'dark');
+          localStorage.setItem('dp_theme', 'dark');
+        }
+      } catch (e) {
+        if (dark) document.documentElement.removeAttribute('data-theme');
+        else document.documentElement.setAttribute('data-theme', 'dark');
+      }
+    });
+  });
+})();
+
+/* ---- Reading progress bar (article pages) ---- */
+(function () {
+  function onReady(fn) {
+    if (document.readyState !== 'loading') fn();
+    else document.addEventListener('DOMContentLoaded', fn);
+  }
+  onReady(function () {
+    var prog = document.getElementById('dp-progress');
+    if (!prog) return;
+    var ticking = false;
+    function update() {
+      var h = document.documentElement;
+      var max = h.scrollHeight - h.clientHeight;
+      prog.style.width = (max > 0 ? (h.scrollTop / max) * 100 : 0) + '%';
+      ticking = false;
+    }
+    window.addEventListener('scroll', function () {
+      if (!ticking) { window.requestAnimationFrame(update); ticking = true; }
+    }, { passive: true });
+    update();
+  });
+})();
