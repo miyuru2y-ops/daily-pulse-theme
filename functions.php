@@ -60,7 +60,7 @@ function dp_register_meta() {
         'type' => 'string', 'single' => true, 'show_in_rest' => true,
         'auth_callback' => 'dp_meta_auth',
     );
-    foreach (array('dp_image', 'dp_source_name', 'dp_source_url', 'dp_slug') as $key) {
+    foreach (array('dp_image', 'dp_source_name', 'dp_source_url', 'dp_slug', 'dp_img_credit') as $key) {
         register_meta('post', $key, $str);
     }
     register_meta('post', 'dp_views', array(
