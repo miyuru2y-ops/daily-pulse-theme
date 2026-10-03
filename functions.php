@@ -35,6 +35,12 @@ function dp_assets() {
 /* Hide the WordPress version from page source (SEO audit fix). */
 remove_action('wp_head', 'wp_generator');
 
+/** The author archive is noindex,follow, so keep it out of the sitemap too. */
+add_filter('wp_sitemaps_add_provider', function ($provider, $name) {
+    if ($name === 'users') return false;
+    return $provider;
+}, 10, 2);
+
 /* Shorten very long article titles: drop the " – Daily Pulse" suffix when
  * the full title would exceed ~70 characters. */
 add_filter('document_title_parts', 'dp_shorten_title');
@@ -234,7 +240,12 @@ function dp_meta_tags() {
     echo '<link rel="canonical" href="' . esc_url($canon) . '">' . "\n";
 
     // Thin archives stay crawlable but out of the index.
-    if (is_author() || is_date() || is_search()) {
+    $noindex = is_author() || is_date() || is_search();
+    if (is_category()) {
+        $cat_obj = get_queried_object();
+        if ($cat_obj && empty($cat_obj->count)) $noindex = true; // e.g. Health until it has stories
+    }
+    if ($noindex) {
         echo '<meta name="robots" content="noindex,follow">' . "\n";
     }
 
