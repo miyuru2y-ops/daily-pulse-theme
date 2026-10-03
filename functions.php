@@ -13,7 +13,7 @@
 
 if (!defined('ABSPATH')) exit;
 
-define('DP_VERSION', '1.0.4');
+define('DP_VERSION', '1.0.5');
 define('DP_SECTIONS', array('world', 'technology', 'business', 'entertainment', 'sports', 'health', 'science'));
 
 /* ---------- theme setup ---------- */
@@ -30,6 +30,20 @@ add_action('wp_enqueue_scripts', 'dp_assets');
 function dp_assets() {
     // The whole design is one stylesheet. No JavaScript shipped at all.
     wp_enqueue_style('daily-pulse', get_stylesheet_uri(), array(), DP_VERSION);
+}
+
+/* Hide the WordPress version from page source (SEO audit fix). */
+remove_action('wp_head', 'wp_generator');
+
+/* Shorten very long article titles: drop the " – Daily Pulse" suffix when
+ * the full title would exceed ~70 characters. */
+add_filter('document_title_parts', 'dp_shorten_title');
+function dp_shorten_title($parts) {
+    if (!is_singular() || empty($parts['title']) || empty($parts['site'])) return $parts;
+    if (mb_strlen($parts['title'] . ' – ' . $parts['site']) > 70) {
+        unset($parts['site'], $parts['tagline']);
+    }
+    return $parts;
 }
 
 /* ---------- meta registration (lets the REST API importer write these) ---------- */
@@ -85,14 +99,32 @@ function dp_image_url($post_id = null) {
     return '';
 }
 
-/** <img> tag for cards / heroes. Empty string when there is no image. */
-function dp_card_img($post_id = null, $class = 'card-img', $extra = '') {
+/** <img> tag for cards / heroes. Empty string when there is no image.
+ *  $eager=true omits loading="lazy" (use for the above-the-fold hero). */
+function dp_card_img($post_id = null, $class = 'card-img', $extra = '', $eager = false) {
     $post_id = $post_id ? $post_id : get_the_ID();
     $url = dp_image_url($post_id);
     if (!$url) return '';
-    $extra = $extra ? ' ' . trim($extra) : '';
+    $extra   = $extra ? ' ' . trim($extra) : '';
+    $loading = $eager ? '' : ' loading="lazy"';
     return '<img class="' . esc_attr($class) . '" src="' . $url . '" alt="' .
-        esc_attr(get_the_title($post_id)) . '" loading="lazy" decoding="async"' . $extra . ' onerror="this.style.display=\'none\'">';
+        esc_attr(get_the_title($post_id)) . '"' . $loading . ' decoding="async"' . $extra . ' onerror="this.style.display=\'none\'">';
+}
+
+/** Absolute publish date wrapped in <time> (replaces relative "x hours ago"). */
+function dp_pub_date($post_id = null) {
+    $post_id = $post_id ? $post_id : get_the_ID();
+    return '<time datetime="' . esc_attr(get_the_date('c', $post_id)) . '">' .
+        esc_html(get_the_date('', $post_id)) . '</time>';
+}
+
+/** Word-safe trim: never cuts mid-word. */
+function dp_word_safe_trim($text, $max = 160) {
+    $text = trim(preg_replace('/\s+/', ' ', $text));
+    if (mb_strlen($text) <= $max) return $text;
+    $cut = mb_substr($text, 0, $max - 1);            // room for the ellipsis
+    $cut = preg_replace('/\s+\S*$/u', '', $cut);    // drop the partial word
+    return rtrim($cut) . '…';
 }
 
 function dp_reading_time($post_id = null) {
@@ -130,7 +162,7 @@ function dp_card($post_id = null) {
       <?php echo dp_card_img($post_id); ?>
       <h3><?php echo esc_html(get_the_title($post_id)); ?></h3>
       <p><?php echo esc_html(get_the_excerpt($post_id)); ?></p>
-      <div class="meta"><?php echo esc_html(dp_time_ago($post_id)); ?> <span style="color:#ccc">&nbsp;|&nbsp;</span> <?php echo $cat ? esc_html($cat->name) : ''; ?></div>
+      <div class="meta"><?php echo dp_pub_date($post_id); ?> <span style="color:#ccc">&nbsp;|&nbsp;</span> <?php echo $cat ? esc_html($cat->name) : ''; ?></div>
     </a>
     <?php
     return ob_get_clean();
@@ -157,11 +189,23 @@ function dp_preload_lcp() {
     }
 }
 
-/** Meta description (+ basic Open Graph) for SEO. Skipped when an SEO
- *  plugin is active to avoid duplicate tags. */
-add_action('wp_head', 'dp_meta_tags', 1);
-function dp_meta_tags() {
-    if (defined('WPSEO_VERSION') || defined('RANK_MATH_VERSION')) return;
+/** Canonical URL for the current page (term archives use the term link,
+ *  never get_permalink() on a term id). */
+function dp_canonical_url() {
+    if (is_singular()) {
+        return get_permalink(get_queried_object_id());
+    }
+    if (is_category()) {
+        return get_category_link(get_queried_object_id());
+    }
+    if (is_author()) {
+        return get_author_posts_url(get_queried_object_id());
+    }
+    return home_url('/');
+}
+
+/** Meta description: hand-written excerpt first, then a word-safe trim. */
+function dp_meta_description() {
     $desc = '';
     if (is_singular()) {
         $desc = get_the_excerpt(get_queried_object_id());
@@ -177,16 +221,134 @@ function dp_meta_tags() {
         $desc = __('World news, rewritten in clear language and updated daily. Top stories across World, Technology, Business, Entertainment, Sports, Health and Science.', 'daily-pulse');
     }
     $desc = trim(wp_strip_all_tags($desc));
-    if (!$desc) return;
-    if (mb_strlen($desc) > 160) {
-        $desc = mb_substr($desc, 0, 157) . '...';
+    if (!$desc) return '';
+    return dp_word_safe_trim($desc, 160);
+}
+
+/** Meta description, canonical, Open Graph and Twitter tags. Skipped when
+ *  an SEO plugin is active to avoid duplicate tags. */
+add_action('wp_head', 'dp_meta_tags', 1);
+function dp_meta_tags() {
+    if (defined('WPSEO_VERSION') || defined('RANK_MATH_VERSION')) return;
+    $canon = dp_canonical_url();
+    echo '<link rel="canonical" href="' . esc_url($canon) . '">' . "\n";
+
+    // Thin archives stay crawlable but out of the index.
+    if (is_author() || is_date() || is_search()) {
+        echo '<meta name="robots" content="noindex,follow">' . "\n";
     }
-    echo '<meta name="description" content="' . esc_attr($desc) . '">' . "\n";
-    echo '<meta property="og:description" content="' . esc_attr($desc) . '">' . "\n";
+
+    $desc = dp_meta_description();
+    if ($desc) {
+        echo '<meta name="description" content="' . esc_attr($desc) . '">' . "\n";
+        echo '<meta property="og:description" content="' . esc_attr($desc) . '">' . "\n";
+        echo '<meta name="twitter:description" content="' . esc_attr($desc) . '">' . "\n";
+    }
+    $title = wp_get_document_title();
+    echo '<meta property="og:title" content="' . esc_attr($title) . '">' . "\n";
+    echo '<meta name="twitter:title" content="' . esc_attr($title) . '">' . "\n";
     echo '<meta property="og:type" content="' . (is_singular() ? 'article' : 'website') . '">' . "\n";
-    $canon = (is_singular() || is_category()) ? get_permalink(get_queried_object_id()) : home_url('/');
     echo '<meta property="og:url" content="' . esc_url($canon) . '">' . "\n";
+    echo '<meta property="og:site_name" content="Daily Pulse">' . "\n";
+
+    $img = '';
+    if (is_singular()) {
+        $img = dp_image_url(get_queried_object_id());
+    } elseif (is_front_page()) {
+        $latest = new WP_Query(array(
+            'posts_per_page' => 1, 'post_status' => 'publish',
+            'ignore_sticky_posts' => true, 'no_found_rows' => true,
+        ));
+        if ($latest->have_posts()) {
+            $latest->the_post();
+            $img = dp_image_url();
+            wp_reset_postdata();
+        }
+    }
+    if ($img) {
+        echo '<meta property="og:image" content="' . esc_url($img) . '">' . "\n";
+        echo '<meta name="twitter:image" content="' . esc_url($img) . '">' . "\n";
+    }
     echo '<meta name="twitter:card" content="summary_large_image">' . "\n";
+
+    if (is_single()) {
+        $id = get_queried_object_id();
+        echo '<meta property="article:published_time" content="' . esc_attr(get_the_date('c', $id)) . '">' . "\n";
+        echo '<meta property="article:modified_time" content="' . esc_attr(get_the_modified_date('c', $id)) . '">' . "\n";
+        $cat = dp_primary_cat($id);
+        if ($cat) {
+            echo '<meta property="article:section" content="' . esc_attr($cat->name) . '">' . "\n";
+        }
+    }
+}
+
+/** JSON-LD structured data: Organization + WebSite everywhere, NewsArticle
+ *  and BreadcrumbList on posts/archives. Skipped when an SEO plugin is
+ *  active, same as dp_meta_tags(). */
+add_action('wp_head', 'dp_json_ld', 2);
+function dp_json_ld() {
+    if (defined('WPSEO_VERSION') || defined('RANK_MATH_VERSION')) return;
+    $home = home_url('/');
+    $schemas = array(
+        array(
+            '@context' => 'https://schema.org',
+            '@type'    => 'Organization',
+            'name'     => 'Daily Pulse',
+            'url'      => $home,
+        ),
+        array(
+            '@context' => 'https://schema.org',
+            '@type'    => 'WebSite',
+            'name'     => 'Daily Pulse',
+            'url'      => $home,
+        ),
+    );
+    if (is_single()) {
+        $id  = get_queried_object_id();
+        $cat = dp_primary_cat($id);
+        $img = dp_image_url($id);
+        $article = array(
+            '@context'      => 'https://schema.org',
+            '@type'         => 'NewsArticle',
+            'headline'      => get_the_title($id),
+            'datePublished' => get_the_date('c', $id),
+            'dateModified'  => get_the_modified_date('c', $id),
+            'author'        => array('@type' => 'Organization', 'name' => 'Daily Pulse'),
+            'publisher'     => array('@type' => 'Organization', 'name' => 'Daily Pulse'),
+        );
+        if ($img) $article['image'] = $img;
+        if ($cat) $article['articleSection'] = $cat->name;
+        $schemas[] = $article;
+
+        $crumbs = array(
+            array('@type' => 'ListItem', 'position' => 1, 'name' => 'Home', 'item' => $home),
+        );
+        $pos = 2;
+        if ($cat) {
+            $crumbs[] = array('@type' => 'ListItem', 'position' => $pos++, 'name' => $cat->name, 'item' => get_category_link($cat));
+        }
+        $crumbs[] = array('@type' => 'ListItem', 'position' => $pos, 'name' => get_the_title($id), 'item' => get_permalink($id));
+        $schemas[] = array(
+            '@context'        => 'https://schema.org',
+            '@type'           => 'BreadcrumbList',
+            'itemListElement' => $crumbs,
+        );
+    } elseif (is_category()) {
+        $cat = get_queried_object();
+        $schemas[] = array(
+            '@context' => 'https://schema.org',
+            '@type'    => 'BreadcrumbList',
+            'itemListElement' => array(
+                array('@type' => 'ListItem', 'position' => 1, 'name' => 'Home', 'item' => $home),
+                array('@type' => 'ListItem', 'position' => 2, 'name' => single_cat_title('', false), 'item' => get_category_link($cat)),
+            ),
+        );
+    }
+    foreach ($schemas as $schema) {
+        echo '<script type="application/ld+json">' .
+            wp_json_encode($schema, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) .
+            '</script>' . "\n";
+    }
 }
 
 add_action('template_redirect', 'dp_track_view');
