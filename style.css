@@ -3,7 +3,7 @@ Theme Name: Daily Pulse
 Theme URI: https://github.com/miyuru2y-ops/daily-pulse-theme
 Author: Daily Pulse
 Description: A lean, fast BBC-style editorial news theme. No page builders, no jQuery, no bloat — just clean templates for the homepage, sections and articles. Designed to be deployed straight from GitHub via webhook.
-Version: 1.0.8
+Version: 1.0.9
 License: GNU General Public License v2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 Text Domain: daily-pulse
@@ -72,7 +72,7 @@ h1,h2,h3{letter-spacing:-.015em}
 .card .meta{margin-top:2px}
 
 /* ---------- sections ---------- */
-.cols{display:grid;grid-template-columns:1fr 300px;gap:40px;padding:8px 0 30px}
+.cols{display:grid;grid-template-columns:1fr 300px;gap:40px;padding:8px 24px 30px}
 .sec{padding:22px 0;border-bottom:1px solid var(--rule)}
 .sec-head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:16px}
 .sec-title{font-size:21px;font-weight:800;margin:0;text-transform:uppercase;letter-spacing:.02em}
