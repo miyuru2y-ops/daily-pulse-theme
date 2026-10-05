@@ -3,7 +3,7 @@
   <div class="foot-cols">
     <div class="foot-col foot-brand-col">
       <div class="foot-brand"><span class="brand-blocks"><span>D</span><span>P</span></span> <?php esc_html_e('DAILY PULSE', 'daily-pulse'); ?></div>
-      <p class="foot-note"><?php esc_html_e('News every hour, rewritten in clear language.', 'daily-pulse'); ?></p>
+      <p class="foot-note"><?php esc_html_e('News every four hours, rewritten in clear language.', 'daily-pulse'); ?></p>
     </div>
     <div class="foot-col">
       <h3><?php esc_html_e('Sections', 'daily-pulse'); ?></h3>
@@ -30,7 +30,7 @@
       </div>
     </div>
   </div>
-  <div class="foot-base">&copy; <?php echo esc_html(wp_date('Y')); ?> <?php esc_html_e('Daily Pulse. News every hour.', 'daily-pulse'); ?></div>
+  <div class="foot-base">&copy; <?php echo esc_html(wp_date('Y')); ?> <?php esc_html_e('Daily Pulse. News every four hours.', 'daily-pulse'); ?></div>
 </footer>
 <?php wp_footer(); ?>
 </body>
