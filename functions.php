@@ -13,7 +13,7 @@
 
 if (!defined('ABSPATH')) exit;
 
-define('DP_VERSION', '1.0.10');
+define('DP_VERSION', '1.0.11');
 define('DP_SECTIONS', array('world', 'technology', 'business', 'entertainment', 'sports', 'health', 'science'));
 
 /* ---------- theme setup ---------- */
@@ -107,15 +107,36 @@ function dp_image_url($post_id = null) {
 }
 
 /** <img> tag for cards / heroes. Empty string when there is no image.
+ *  Featured attachments get full responsive markup (srcset/sizes plus
+ *  intrinsic width/height); hotlink fallbacks keep a plain tag.
  *  $eager=true omits loading="lazy" (use for the above-the-fold hero). */
 function dp_card_img($post_id = null, $class = 'card-img', $extra = '', $eager = false) {
     $post_id = $post_id ? $post_id : get_the_ID();
+    $title   = get_the_title($post_id);
+    if (has_post_thumbnail($post_id)) {
+        $img = wp_get_attachment_image(
+            get_post_thumbnail_id($post_id),
+            'large',
+            false,
+            array(
+                'class'    => $class,
+                'alt'      => $title,
+                'loading'  => $eager ? 'eager' : 'lazy',
+                'decoding' => 'async',
+            )
+        );
+        if ($img) {
+            $add = 'onerror="this.style.display=\'none\'"';
+            if ($extra) $add .= ' ' . trim($extra);
+            return preg_replace('/<img /', '<img ' . $add . ' ', $img, 1);
+        }
+    }
     $url = dp_image_url($post_id);
     if (!$url) return '';
     $extra   = $extra ? ' ' . trim($extra) : '';
     $loading = $eager ? '' : ' loading="lazy"';
     return '<img class="' . esc_attr($class) . '" src="' . $url . '" alt="' .
-        esc_attr(get_the_title($post_id)) . '"' . $loading . ' decoding="async"' . $extra . ' onerror="this.style.display=\'none\'">';
+        esc_attr($title) . '"' . $loading . ' decoding="async"' . $extra . ' onerror="this.style.display=\'none\'">';
 }
 
 /** Absolute publish date wrapped in <time> (replaces relative "x hours ago"). */
@@ -196,17 +217,16 @@ function dp_preload_lcp() {
     }
 }
 
-/** Canonical URL for the current page (term archives use the term link,
- *  never get_permalink() on a term id). */
+/** Canonical URL for the current page. Paginated archives get their own
+ *  self-referencing canonical (never page 1). Empty on 404s. */
 function dp_canonical_url() {
+    if (is_404()) return '';
     if (is_singular()) {
         return get_permalink(get_queried_object_id());
     }
-    if (is_category()) {
-        return get_category_link(get_queried_object_id());
-    }
-    if (is_author()) {
-        return get_author_posts_url(get_queried_object_id());
+    if (is_category() || is_tag() || is_author() || is_date()) {
+        $paged = get_query_var('paged');
+        return get_pagenum_link($paged ? (int) $paged : 1);
     }
     return home_url('/');
 }
@@ -238,7 +258,9 @@ add_action('wp_head', 'dp_meta_tags', 1);
 function dp_meta_tags() {
     if (defined('WPSEO_VERSION') || defined('RANK_MATH_VERSION')) return;
     $canon = dp_canonical_url();
-    echo '<link rel="canonical" href="' . esc_url($canon) . '">' . "\n";
+    if ($canon) {
+        echo '<link rel="canonical" href="' . esc_url($canon) . '">' . "\n";
+    }
 
     // Thin archives stay crawlable but out of the index.
     $noindex = is_author() || is_date() || is_search();
@@ -294,6 +316,10 @@ function dp_meta_tags() {
     }
 }
 
+/* The theme outputs its own canonical (with correct pagination handling);
+ *  drop WordPress core's duplicate rel_canonical output. */
+remove_action('wp_head', 'rel_canonical');
+
 /** JSON-LD structured data: Organization + WebSite everywhere, NewsArticle
  *  and BreadcrumbList on posts/archives. Skipped when an SEO plugin is
  *  active, same as dp_meta_tags(). */
@@ -323,11 +349,12 @@ function dp_json_ld() {
         $article = array(
             '@context'      => 'https://schema.org',
             '@type'         => 'NewsArticle',
-            'headline'      => get_the_title($id),
+            'headline'      => html_entity_decode(get_the_title($id), ENT_QUOTES, 'UTF-8'),
+            'mainEntityOfPage' => get_permalink($id),
             'datePublished' => get_the_date('c', $id),
             'dateModified'  => get_the_modified_date('c', $id),
             'author'        => array(
-                '@type' => 'Person',
+                '@type' => 'Organization',
                 'name'  => 'Daily Pulse',
                 'url'   => $about_page ? get_permalink($about_page) : $home,
             ),
