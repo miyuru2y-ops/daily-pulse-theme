@@ -7,13 +7,14 @@
  *   dp_image        image URL for cards / story hero
  *   dp_source_name  original publisher name
  *   dp_source_url   link to the original article
+ *   dp_sources      JSON list of {name,url} source citations
  *   dp_slug         importer slug (dedupe key)
  *   dp_views        most-read counter
  */
 
 if (!defined('ABSPATH')) exit;
 
-define('DP_VERSION', '1.0.11');
+define('DP_VERSION', '1.0.12');
 define('DP_SECTIONS', array('world', 'technology', 'business', 'entertainment', 'sports', 'health', 'science'));
 
 /* ---------- theme setup ---------- */
@@ -61,7 +62,7 @@ function dp_register_meta() {
         'type' => 'string', 'single' => true, 'show_in_rest' => true,
         'auth_callback' => 'dp_meta_auth',
     );
-    foreach (array('dp_image', 'dp_source_name', 'dp_source_url', 'dp_slug', 'dp_img_credit') as $key) {
+    foreach (array('dp_image', 'dp_source_name', 'dp_source_url', 'dp_sources', 'dp_slug', 'dp_img_credit') as $key) {
         register_meta('post', $key, $str);
     }
     register_meta('post', 'dp_views', array(
@@ -144,6 +145,34 @@ function dp_pub_date($post_id = null) {
     $post_id = $post_id ? $post_id : get_the_ID();
     return '<time datetime="' . esc_attr(get_the_date('c', $post_id)) . '">' .
         esc_html(get_the_date('', $post_id)) . '</time>';
+}
+
+/** "Sources" box for single articles. Uses the dp_sources JSON list when
+ *  present (new posts), falling back to the legacy dp_source_name/url pair
+ *  so older posts still cite their original report. */
+function dp_sources_html($post_id = null) {
+    $post_id = $post_id ? $post_id : get_the_ID();
+    $list = array();
+    $json = get_post_meta($post_id, 'dp_sources', true);
+    if ($json) {
+        $dec = json_decode($json, true);
+        if (is_array($dec)) $list = $dec;
+    }
+    if (!$list) {
+        $url  = get_post_meta($post_id, 'dp_source_url', true);
+        $name = get_post_meta($post_id, 'dp_source_name', true);
+        if ($url) $list = array(array('name' => $name ? $name : $url, 'url' => $url));
+    }
+    if (!$list) return '';
+    $out = '<div class="sources-box"><h2 class="sec-title"><span class="bar"></span>' .
+        esc_html__('Sources', 'daily-pulse') . '</h2><ul>';
+    foreach ($list as $s) {
+        if (empty($s['url'])) continue;
+        $label = !empty($s['name']) ? $s['name'] : $s['url'];
+        $out .= '<li><a href="' . esc_url($s['url']) . '" target="_blank" rel="nofollow noopener">' .
+            esc_html($label) . '</a></li>';
+    }
+    return $out . '</ul></div>';
 }
 
 /** Word-safe trim: never cuts mid-word. */
