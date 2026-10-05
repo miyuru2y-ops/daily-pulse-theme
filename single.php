@@ -43,15 +43,23 @@ while (have_posts()) : the_post();
       <span><?php esc_html_e('Save', 'daily-pulse'); ?></span>
     </button>
   </div>
-  <?php if ($img) : ?>
+  <?php if ($img) :
+    if (has_post_thumbnail()) {
+        $hero = wp_get_attachment_image(get_post_thumbnail_id(), 'large', false, array(
+            'class' => 'story-img', 'alt' => $ptitle, 'decoding' => 'async', 'fetchpriority' => 'high',
+        ));
+        echo preg_replace('/<img /', '<img onerror="this.style.display=\'none\'" ', $hero, 1);
+    } else { ?>
     <img class="story-img" src="<?php echo $img; ?>" alt="<?php the_title_attribute(); ?>" onerror="this.style.display='none'">
-    <?php if ($imgcap) : ?><p class="img-cap"><?php echo esc_html($imgcap); ?></p><?php endif; ?>
+  <?php }
+    if ($imgcap) : ?><p class="img-cap"><?php echo esc_html($imgcap); ?></p><?php endif; ?>
   <?php endif; ?>
   <div class="byline-block">
     <span class="by-avatar" aria-hidden="true"><span>D</span><span>P</span></span>
     <span class="by-text"><strong><?php printf(esc_html__('By %s', 'daily-pulse'), esc_html(get_the_author())); ?></strong><br><?php echo dp_pub_date(); ?></span>
   </div>
   <div class="story-body" id="dp-body"><?php the_content(); ?></div>
+  <?php echo dp_sources_html(); ?>
 </article></div>
 
 <?php if ($cat) :
